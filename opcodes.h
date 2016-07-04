@@ -10,7 +10,7 @@ enum {
 	LDX_ABSOLUTE = 0xAE,
 	LDX_ABSOLUTE_Y = 0xBE,
 
-    // Load Accumulator
+        // Load Accumulator
 	LDA_IMMEDIATE = 0xA9,
 	LDA_ZERO_PAGE = 0xA5,
 	LDA_ZERO_PAGE_X = 0xB5,
@@ -25,7 +25,7 @@ enum {
 	STX_ZERO_PAGE_Y = 0x96,
 	STX_ABSOLUTE = 0x8E,
 
-	//Store Accumulator
+	// Store Accumulator
 	STA_ZERO_PAGE = 0x85,
 	STA_ZERO_PAGE_X = 0x95,
 	STA_ABSOLUTE = 0x8D,
@@ -68,6 +68,9 @@ enum {
 	// Branch if Positive
 	BPL_RELATIVE = 0x10,
 
+        // Branch if negative
+        BMI_RELATIVE = 0x30,
+
 	// Clear Carry Flag
 	CLC_IMPLIED = 0x18,
 
@@ -80,8 +83,17 @@ enum {
 	// Set Decimal Flag
 	SED_IMPLIED = 0xf8,
 
+        // Clear Decimal Flag
+        CLD_IMPLIED = 0xd8,
+
 	// Push Processor Status
 	PHP_IMPLIED = 0x08,
+
+        // Pull Processor Status
+        PLP_IMPLIED = 0x28,
+
+        // Push Accumulator
+        PHA_IMPLIED = 0x48,
 
 	// Pull Accumulator
 	PLA_IMPLIED = 0x68,
@@ -95,6 +107,16 @@ enum {
 	AND_ABSOLUTE_Y = 0x39,
 	AND_INDIRECT_X = 0x21,
 	AND_INDIRECT_Y = 0x31,
+
+    	// Logical OR
+	ORA_IMMEDIATE = 0x29,
+	ORA_ZERO_PAGE = 0x05,
+	ORA_ZERO_PAGE_X = 0x15,
+	ORA_ABSOLUTE = 0x0D,
+        ORA_ABSOLUTE_X = 0x1D,
+        ORA_ABSOLUTE_Y = 0x19,
+	ORA_INDIRECT_X = 0x01,
+	ORA_INDIRECT_Y = 0x11,
 
 	// Compare
 	CMP_IMMEDIATE = 0xC9,

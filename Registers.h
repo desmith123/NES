@@ -6,7 +6,7 @@
 class Processor::Registers {
 
 public:
-	Registers::Registers();
+	Registers();
 
 	void dumpRegisters();
 

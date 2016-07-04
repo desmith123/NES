@@ -3,7 +3,9 @@
 
 #include <vector>
 #include <map>
-
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "Types.h"
 
 typedef status_t(*opfunc)();
@@ -41,6 +43,7 @@ private:
 	status_t BVS(uchar_t opcode);
 	status_t BVC(uchar_t opcode);
 	status_t BPL(uchar_t opcode);
+        status_t BMI(uchar_t opcode);
 	status_t CLC(uchar_t opcode);
 	status_t LDA(uchar_t opcode);
 	status_t BIT(uchar_t opcode);
@@ -48,9 +51,13 @@ private:
 	status_t SEI(uchar_t opcode);
 	status_t SED(uchar_t opcode);
 	status_t PHP(uchar_t opcode);
+        status_t PLP(uchar_t opcode);
+        status_t PHA(uchar_t opcode);
 	status_t PLA(uchar_t opcode);
 	status_t AND(uchar_t opcode);
+        status_t ORA(uchar_t opcode);
 	status_t CMP(uchar_t opcode);
+        status_t CLD(uchar_t opcode);
 
 };
 

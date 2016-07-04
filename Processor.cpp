@@ -15,8 +15,8 @@ void Processor::start(ushort_t initialPC) {
 
 	mRegisters->programCounter = initialPC;
 
-	for (int i = 0; i < 80; i++) {
-		printf("---------------\n");
+	for (int i = 0; i < 160; i++) {
+		printf("----------------\n");
 		printf("Executing next instruction!\n");
 		status_t ret = executeNextInstruction();
 		if (ret != OK) {
@@ -197,6 +197,13 @@ status_t Processor::executeNextInstruction() {
 			break;
 		}
 
+                case BMI_RELATIVE:
+                {
+                        printf("Branch if negative instruction\n");
+                        ret = BMI(opcode);
+                        break;
+                }
+
 		case CLC_IMPLIED:
 		{
 			printf("Clear carry instruction\n");
@@ -225,6 +232,13 @@ status_t Processor::executeNextInstruction() {
 			break;
 		}
 
+                case CLD_IMPLIED:
+                {
+                        printf("Clear decimal instruction\n");
+                        ret = CLD(opcode);
+                        break;
+                }
+
 		case PHP_IMPLIED:
 		{
 			printf("Push processor status instruction\n");
@@ -232,12 +246,26 @@ status_t Processor::executeNextInstruction() {
 			break;
 		}
 
+                case PHA_IMPLIED:
+                {
+                        printf("Push accumulator instruction\n");
+                        ret = PHA(opcode);
+                        break;
+                }
+
 		case PLA_IMPLIED:
 		{
 			printf("Pull accumulator instruction\n");
 			ret = PLA(opcode);
 			break;
 		}
+
+                case PLP_IMPLIED:
+                {
+                       printf("Pull processor status instruction\n");
+                       ret = PLP(opcode);
+                       break;
+                }
 
 		case BIT_ZERO_PAGE:
 		case BIT_ABSOLUTE:
@@ -1551,7 +1579,7 @@ status_t Processor::BPL(uchar_t opcode) {
 	status_t ret = ERROR_UNKNOWN;
 	switch (opcode) {
 
-		//
+		// Pull displacement from next byte. Jump there if N flag not 1.
 		case BPL_RELATIVE:
 		{
 			if (mRegisters->statusFlags.N == 1) {
@@ -1581,6 +1609,67 @@ status_t Processor::BPL(uchar_t opcode) {
 		default:
 		{
 			printf("No BPL implementation for opcode 0x%x\n", opcode);
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+
+/*
+ * If the negative flag is set then add the relative displacement to the program counter to cause a branch to a new location.
+ *
+ * Processor Status after use:
+ *
+ * C 	Carry Flag       	Not affected
+ * Z 	Zero Flag 	        Not affected
+ * I 	Interrupt Disable 	Not affected
+ * D 	Decimal Mode Flag 	Not affected
+ * B 	Break Command    	Not affected
+ * V 	Overflow Flag   	Not affected
+ * N 	Negative Flag    	Not affected
+ *
+ * Addressing Modes |  Opcode |  Bytes |  Cycles
+ * Relative         |  0x30   |  2     |  2 (+1 if branch succeeds, +2 if to a new page)
+ */
+status_t Processor::BMI(uchar_t opcode) {
+
+	status_t ret = ERROR_UNKNOWN;
+	switch (opcode) {
+
+		//
+		case BMI_RELATIVE:
+		{
+			if (mRegisters->statusFlags.N == 0) {
+				mRegisters->programCounter += 2;
+				mCycleCount += 2;
+                                printf("Not branching, flag is not negative\n");
+			}
+			else {
+				// Get displacement
+				uchar_t disp;
+				ret = mMemoryInterface->fetchBytesFromMemory(&disp, mRegisters->programCounter + 1);
+				if (ret != OK) {
+					printf("Error reading memory\n");
+					return ret;
+				}
+				printf("Disp is 0x%02x\n", disp);
+
+				// Account for negative displacement
+				mRegisters->programCounter += (char)disp + 2;
+
+				mCycleCount += 3;
+			}
+
+			ret = OK;
+			break;
+		}
+
+		default:
+		{
+			printf("No BMI implementation for opcode 0x%x\n", opcode);
 			ret = ERROR_UNKNOWN;
 			break;
 		}
@@ -1878,6 +1967,50 @@ status_t Processor::SED(uchar_t opcode) {
 
 
 /*
+ * Clears the Binary Coded Decimal flag
+ *
+ * Processor Status after use:
+ *
+ * C 	Carry Flag       	Not affected
+ * Z 	Zero Flag 	        Not affected
+ * I 	Interrupt Disable 	Not affected
+ * D 	Decimal Mode Flag 	Set to 0
+ * B 	Break Command    	Not affected
+ * V 	Overflow Flag   	Not affected
+ * N 	Negative Flag    	Not affected
+ *
+ * Addressing Modes |  Opcode |  Bytes |  Cycles
+ * Implied          |  0xD8   |  1     |  2
+ */
+status_t Processor::CLD(uchar_t opcode) {
+
+	status_t ret = ERROR_UNKNOWN;
+	switch (opcode) {
+
+		// Clear the decimal flag
+		case CLD_IMPLIED:
+		{
+			mRegisters->statusFlags.D = 0;
+			mRegisters->programCounter += 1;
+
+			mCycleCount += 2;
+			ret = OK;
+			break;
+		}
+
+		default:
+		{
+			printf("No CLD implementation for opcode 0x%x\n", opcode);
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+
+/*
  * Pushes a copy of the status flags on to the stack.
  *
  * Processor Status after use:
@@ -1903,7 +2036,7 @@ status_t Processor::PHP(uchar_t opcode) {
 		{
 			// 7 	6 	5 	4 	3 	2 	1 	0
 			// N 	V   -   B 	D 	I 	Z 	C
-			// Bit 5 is empty.
+			// Bit 5 is always 1.
 			uchar_t flagStatus = 0;
 			flagStatus = flagStatus | mRegisters->statusFlags.C;
 			flagStatus = flagStatus | mRegisters->statusFlags.Z << 1;
@@ -1944,6 +2077,58 @@ status_t Processor::PHP(uchar_t opcode) {
 
 
 /*
+ * Pushes a copy of the accumulator on to the stack.
+ *
+ * Processor Status after use:
+ *
+ * C 	Carry Flag       	Not affected
+ * Z 	Zero Flag 	        Not affected
+ * I 	Interrupt Disable 	Not affected
+ * D 	Decimal Mode Flag 	Not affected
+ * B 	Break Command    	Not affected
+ * V 	Overflow Flag   	Not affected
+ * N 	Negative Flag    	Not affected
+ *
+ * Addressing Modes |  Opcode |  Bytes |  Cycles
+ * Implied          |  0x48   |  1     |  3
+ */
+status_t Processor::PHA(uchar_t opcode) {
+
+	status_t ret = ERROR_UNKNOWN;
+	switch (opcode) {
+
+		// Pushes an the accumulator onto stack
+		case PHA_IMPLIED:
+		{
+			std::vector<uchar_t> memData;
+			memData.push_back(mRegisters->accumulator);
+			ret = mMemoryInterface->PushToStack(&memData, &mRegisters->stackPointer, 1);
+			if (ret != OK) {
+				printf("Error writing to memory\n");
+				return ret;
+			}
+                        printf("Pushed 0x%x to stack\n", mRegisters->accumulator);
+                       
+			mRegisters->programCounter += 1;
+
+			mCycleCount += 3;
+			ret = OK;
+			break;
+		}
+
+		default:
+		{
+			printf("No PHA implementation for opcode 0x%x\n", opcode);
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+
+/*
  * Pulls an 8 bit value from the stack and into the accumulator. The zero and negative flags are set as appropriate.
  *
  * Processor Status after use:
@@ -1968,6 +2153,7 @@ status_t Processor::PLA(uchar_t opcode) {
 		case PLA_IMPLIED:
 		{
 			std::vector<uchar_t> stackValue;
+                        printf("SP is 0x%x\n", mRegisters->stackPointer);
 			ret = mMemoryInterface->PopFromStack(&stackValue, &mRegisters->stackPointer, 1);
 			if (ret != OK) {
 				printf("Error reading memory\n");
@@ -2003,6 +2189,70 @@ status_t Processor::PLA(uchar_t opcode) {
 		default:
 		{
 			printf("No PLA implementation for opcode 0x%x\n", opcode);
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+
+/*
+ * Pulls an 8 bit value from the stack and into the status registers.
+ *
+ * Processor Status after use:
+ *
+ * C 	Carry Flag       	Not affected
+ * Z 	Zero Flag 	        Not affected
+ * I 	Interrupt Disable 	Not affected
+ * D 	Decimal Mode Flag 	Not affected
+ * B 	Break Command    	Not affected
+ * V 	Overflow Flag   	Not affected
+ * N 	Negative Flag    	Not affected
+ *
+ * Addressing Modes |  Opcode |  Bytes |  Cycles
+ * Implied          |  0x28   |  1     |  4
+ */
+status_t Processor::PLP(uchar_t opcode) {
+
+	status_t ret = ERROR_UNKNOWN;
+	switch (opcode) {
+
+		// Pushes an 8 bit value off stack and sets status registers to it
+		case PLP_IMPLIED:
+		{
+			std::vector<uchar_t> stackValue;
+			ret = mMemoryInterface->PopFromStack(&stackValue, &mRegisters->stackPointer, 1);
+			if (ret != OK) {
+				printf("Error reading memory\n");
+				return ret;
+			}
+
+			printf("Setting register status flags to 0x%x\n", stackValue[0]);
+
+                       	// 7 	6 	5 	4 	3 	2 	1 	0
+			// N 	V       -       B 	D 	I       Z       C
+			// Bit 5 is always 1.
+                        mRegisters->statusFlags.C = (stackValue[0] & 0x01) >> 0;
+		        mRegisters->statusFlags.Z = (stackValue[0] & 0x02) >> 1;
+			mRegisters->statusFlags.I = (stackValue[0] & 0x04) >> 2;
+                        mRegisters->statusFlags.D = (stackValue[0] & 0x08) >> 3;
+			mRegisters->statusFlags.B = (stackValue[0] & 0x10) >> 4;
+			mRegisters->statusFlags.U = 1;
+			mRegisters->statusFlags.O = (stackValue[0] & 0x40) >> 6;
+			mRegisters->statusFlags.N = (stackValue[0] & 0x80) >> 7;
+			
+                        mRegisters->programCounter += 1;
+
+			mCycleCount += 4;
+			ret = OK;
+			break;
+		}
+
+		default:
+		{
+			printf("No PLP implementation for opcode 0x%x\n", opcode);
 			ret = ERROR_UNKNOWN;
 			break;
 		}

@@ -109,7 +109,7 @@ status_t Processor::MemoryInterface::PopFromStack(std::vector<uchar_t> *memData,
 		return ERROR_UNKNOWN;
 	}
 
-	*sp -= 2;
+	*sp -= numBytes;
 
 	// Erase the data on the stack
 	std::vector<uchar_t> empty;

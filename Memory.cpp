@@ -5,15 +5,15 @@
 Memory::Memory(std::string fileName) {
 
 	std::ifstream *input = new std::ifstream();
-	input->open(fileName, std::ios::binary);
+	input->open(fileName.c_str(), std::ios::binary);
 
 	if (input->fail()) {
-		printf("Error opening file: %s", fileName);
+		printf("Error opening file: %s", fileName.c_str());
 		return;
 	}
 
 	mRam = new std::vector<uchar_t>();
-	std::vector<uchar_t>::const_iterator iter = mRam->begin();
+	std::vector<uchar_t>::iterator iter = mRam->begin();
 
 	// NES ROM starts at 0xC000
 	mRam->insert(iter, 0xC000, 0);
