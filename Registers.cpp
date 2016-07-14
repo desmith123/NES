@@ -3,7 +3,7 @@
 Processor::Registers::Registers():
 	accumulator(0),
 	programCounter(0),
-	stackPointer(0),
+	stackPointer(0xFD), // Starts at 0xFD in test??
 	indexX(0),
 	indexY(0)
 {

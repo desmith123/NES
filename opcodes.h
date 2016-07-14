@@ -10,7 +10,14 @@ enum {
 	LDX_ABSOLUTE = 0xAE,
 	LDX_ABSOLUTE_Y = 0xBE,
 
-        // Load Accumulator
+	// Load Y Register
+	LDY_IMMEDIATE = 0xA0,
+	LDY_ZERO_PAGE = 0xA4,
+	LDY_ZERO_PAGE_X = 0xB4,
+	LDY_ABSOLUTE = 0xAC,
+	LDY_ABSOLUTE_X = 0xBC,
+
+    // Load Accumulator
 	LDA_IMMEDIATE = 0xA9,
 	LDA_ZERO_PAGE = 0xA5,
 	LDA_ZERO_PAGE_X = 0xB5,
@@ -68,8 +75,8 @@ enum {
 	// Branch if Positive
 	BPL_RELATIVE = 0x10,
 
-        // Branch if negative
-        BMI_RELATIVE = 0x30,
+    // Branch if negative
+    BMI_RELATIVE = 0x30,
 
 	// Clear Carry Flag
 	CLC_IMPLIED = 0x18,
@@ -83,20 +90,77 @@ enum {
 	// Set Decimal Flag
 	SED_IMPLIED = 0xf8,
 
-        // Clear Decimal Flag
-        CLD_IMPLIED = 0xd8,
+    // Clear Decimal Flag
+    CLD_IMPLIED = 0xd8,
+
+	// Clear Overflow Flag
+	CLV_IMPLIED = 0xb8,
 
 	// Push Processor Status
 	PHP_IMPLIED = 0x08,
 
-        // Pull Processor Status
-        PLP_IMPLIED = 0x28,
+    // Pull Processor Status
+    PLP_IMPLIED = 0x28,
 
-        // Push Accumulator
-        PHA_IMPLIED = 0x48,
+    // Push Accumulator
+    PHA_IMPLIED = 0x48,
 
 	// Pull Accumulator
 	PLA_IMPLIED = 0x68,
+
+	// Increment Y Register
+	INY_IMPLIED = 0xC8,
+
+	// Increment X Register
+	INX_IMPLIED = 0xE8,
+
+	// Decrement Y Register
+	DEY_IMPLIED = 0x88,
+
+	// Decrement X Register
+	DEX_IMPLIED = 0xCA,
+
+	// Transfer Accumulator to Y
+	TAY_IMPLIED = 0xA8,
+
+	// Transfer Accumulator to X
+	TAX_IMPLIED = 0xAA,
+
+	// Transfer Y to Accumulator
+	TYA_IMPLIED = 0x98,
+
+	// Transfer X to Accumulator
+	TXA_IMPLIED = 0x8A,
+
+	// Transfer Stack Pointer to X
+	TSX_IMPLIED = 0xBA,
+
+	// Transfer X to Stack Pointer
+	TXS_IMPLIED = 0x9A,
+
+	// Return From Interrupt
+	RTI_IMPLIED = 0x40,
+
+	// Logical Shift Right
+	LSR_ACCUMULATOR = 0x4A,
+	LSR_ZERO_PAGE = 0x46,
+	LSR_ZERO_PAGE_X = 0x56,
+	LSR_ABSOLUTE = 0x4E,
+	LSR_ABSOLUTE_X = 0x5E,
+
+	// Rotate Right
+	ROR_ACCUMULATOR = 0x6A,
+	ROR_ZERO_PAGE = 0x66,
+	ROR_ZERO_PAGE_X = 0x76,
+	ROR_ABSOLUTE = 0x6E,
+	ROR_ABSOLUTE_X = 0x7E,
+
+	// Arithmetic Shift Left
+	ASL_ACCUMULATOR = 0x0A,
+	ASL_ZERO_PAGE = 0x06,
+	ASL_ZERO_PAGE_X = 0x16,
+	ASL_ABSOLUTE = 0x0E,
+	ASL_ABSOLUTE_X = 0x1E,
 
 	// Logical AND
 	AND_IMMEDIATE = 0x29,
@@ -108,15 +172,45 @@ enum {
 	AND_INDIRECT_X = 0x21,
 	AND_INDIRECT_Y = 0x31,
 
-    	// Logical OR
-	ORA_IMMEDIATE = 0x29,
+    // Logical Inclusive OR
+	ORA_IMMEDIATE = 0x09,
 	ORA_ZERO_PAGE = 0x05,
 	ORA_ZERO_PAGE_X = 0x15,
 	ORA_ABSOLUTE = 0x0D,
-        ORA_ABSOLUTE_X = 0x1D,
-        ORA_ABSOLUTE_Y = 0x19,
+    ORA_ABSOLUTE_X = 0x1D,
+    ORA_ABSOLUTE_Y = 0x19,
 	ORA_INDIRECT_X = 0x01,
 	ORA_INDIRECT_Y = 0x11,
+
+	// Exclusive OR
+	EOR_IMMEDIATE = 0x49,
+	EOR_ZERO_PAGE = 0x45,
+	EOR_ZERO_PAGE_X = 0x55,
+	EOR_ABSOLUTE = 0x4D,
+	EOR_ABSOLUTE_X = 0x5D,
+	EOR_ABSOLUTE_Y = 0x59,
+	EOR_INDIRECT_X = 0x41,
+	EOR_INDIRECT_Y = 0x51,
+
+	// Add with Carry
+	ADC_IMMEDIATE = 0x69,
+	ADC_ZERO_PAGE = 0x65,
+	ADC_ZERO_PAGE_X = 0x75,
+	ADC_ABSOLUTE = 0x6D,
+	ADC_ABSOLUTE_X = 0x7D,
+	ADC_ABSOLUTE_Y = 0x79,
+	ADC_INDIRECT_X = 0x61,
+	ADC_INDIRECT_Y = 0x71,
+
+	// Subtract with Carry
+	SBC_IMMEDIATE = 0xE9,
+	SBC_ZERO_PAGE = 0xE5,
+	SBC_ZERO_PAGE_X = 0xF5,
+	SBC_ABSOLUTE = 0xED,
+	SBC_ABSOLUTE_X = 0xFD,
+	SBC_ABSOLUTE_Y = 0xF9,
+	SBC_INDIRECT_X = 0xE1,
+	SBC_INDIRECT_Y = 0xF1,
 
 	// Compare
 	CMP_IMMEDIATE = 0xC9,
@@ -127,6 +221,16 @@ enum {
 	CMP_ABSOLUTE_Y = 0xD9,
 	CMP_INDIRECT_X = 0xC1,
 	CMP_INDIRECT_Y = 0xD1,
+
+	// Compare Y register
+	CPY_IMMEDIATE = 0xC0,
+	CPY_ZERO_PAGE = 0xC4,
+	CPY_ABSOLUTE = 0xCC,
+
+	// Compare X register
+	CPX_IMMEDIATE = 0xE0,
+	CPX_ZERO_PAGE = 0xE4,
+	CPX_ABSOLUTE = 0xEC,
 
 	// Bit Test
 	BIT_ZERO_PAGE = 0x24,

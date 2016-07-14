@@ -56,26 +56,23 @@ status_t Processor::MemoryInterface::PushToStack(std::vector<uchar_t> *memData, 
 	
 	status_t ret = ERROR_UNKNOWN;
 
-	if (*sp < 0 || *sp >  0xFF - 1) {
+	if (*sp-numBytes < 0 || *sp >  0xFF) {
 		printf("Cannot push to stack, stack pointer is invalid\n");
 		return ERROR_UNKNOWN;
 	}
 
-	// Convert from big to little endian
-	switchEndian(memData);
-
 	// Write data to stack and increment stack pointer
 	for (int i = 0; i < numBytes; i++) {
-		 ret = mMemory->WriteToStack(memData->at(i), *sp+i);
-	}
+		 ret = mMemory->WriteToStack(memData->at(i), *sp-i);
 
-	if (ret != OK)
-	{
-		printf("Error reading stack data from memory\n");
-		return ERROR_UNKNOWN;
+		 if (ret != OK)
+		 {
+			 printf("Error reading stack data from memory\n");
+			 return ERROR_UNKNOWN;
+		 }
 	}
 	
-	*sp += numBytes;
+	*sp -= numBytes;
 
 	if (ret != OK)
 	{
@@ -90,8 +87,8 @@ status_t Processor::MemoryInterface::PopFromStack(std::vector<uchar_t> *memData,
 
 	status_t ret = ERROR_UNKNOWN;
 
-	if (*sp < 1 || *sp >  0xFF) {
-		printf("Cannot push to stack, stack pointer is invalid\n");
+	if (*sp < 1 || *sp+numBytes >  0xFF) {
+		printf("Cannot pop from stack, stack pointer is invalid\n");
 		return ERROR_UNKNOWN;
 	}
 
@@ -99,36 +96,20 @@ status_t Processor::MemoryInterface::PopFromStack(std::vector<uchar_t> *memData,
 	for (int i = 0; i < numBytes; i++) {
 		uchar_t val;
 		// Need to read leftmost byte first, farthest from stack pointer
-		ret = mMemory->ReadFromStack(&val, *sp-numBytes+i);
+		ret = mMemory->ReadFromStack(&val, *sp + numBytes - i);
+
+		if (ret != OK)
+		{
+			printf("Error reading stack data from memory\n");
+			return ERROR_UNKNOWN;
+		}
+
 		memData->push_back(val);
 	}
+	
 
-	if (ret != OK)
-	{
-		printf("Error reading stack data from memory\n");
-		return ERROR_UNKNOWN;
-	}
+	*sp += numBytes;
 
-	*sp -= numBytes;
-
-	// Erase the data on the stack
-	std::vector<uchar_t> empty;
-	for (int i = 0; i < numBytes; i++) {
-		empty.push_back(0);
-	}
-
-	for (int i = 0; i < numBytes; i++) {
-		ret = mMemory->WriteToStack(empty.at(i), *sp+i);
-	}
-
-	if (ret != OK)
-	{
-		printf("Error writing stack data to memory\n");
-		return ERROR_UNKNOWN;
-	}
-
-	// Convert from little to big endian
-	switchEndian(memData);
 	return OK;
 }
 

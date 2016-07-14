@@ -60,7 +60,7 @@ status_t Memory::writeByte(uchar_t data, uint32_t index) {
  */
 status_t Memory::WriteToStack(uchar_t data, uint32_t offset) {
 
-	if (offset < 0 || offset > 0xFF - 1) {
+	if (offset < 0 || offset > 0xFF) {
 		printf("Invalid write to stack\n");
 		return ERROR_UNKNOWN;
 	}
