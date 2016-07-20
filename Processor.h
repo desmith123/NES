@@ -57,6 +57,7 @@ private:
 	status_t PLA(uchar_t opcode);
 	status_t LSR(uchar_t opcode);
 	status_t ROR(uchar_t opcode);
+        status_t ROL(uchar_t opcode);
 	status_t ASL(uchar_t opcode);
 	status_t AND(uchar_t opcode);
     status_t ORA(uchar_t opcode);

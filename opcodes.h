@@ -155,6 +155,13 @@ enum {
 	ROR_ABSOLUTE = 0x6E,
 	ROR_ABSOLUTE_X = 0x7E,
 
+        // Rotate Left
+	ROL_ACCUMULATOR = 0x2A,
+	ROL_ZERO_PAGE = 0x26,
+	ROL_ZERO_PAGE_X = 0x36,
+	ROL_ABSOLUTE = 0x2E,
+	ROL_ABSOLUTE_X = 0x3E,
+
 	// Arithmetic Shift Left
 	ASL_ACCUMULATOR = 0x0A,
 	ASL_ZERO_PAGE = 0x06,

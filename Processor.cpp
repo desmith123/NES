@@ -15,7 +15,7 @@ void Processor::start(ushort_t initialPC) {
 
 	mRegisters->programCounter = initialPC;
 
-	for (int i = 0; i < 1050; i++) {
+	for (int i = 0; i < 1150; i++) {
 		printf("----------------\n");
 		printf("Executing next instruction %d!\n", i);
 		status_t ret = executeNextInstruction();
@@ -129,6 +129,17 @@ status_t Processor::executeNextInstruction() {
 		{
 			printf("Rotate right Instruction\n");
 			ret = ROR(opcode);
+			break;
+		}
+
+                case ROL_ACCUMULATOR:
+		case ROL_ZERO_PAGE:
+		case ROL_ZERO_PAGE_X:
+		case ROL_ABSOLUTE:
+		case ROL_ABSOLUTE_X:
+		{
+			printf("Rotate left Instruction\n");
+			ret = ROL(opcode);
 			break;
 		}
 
@@ -854,8 +865,41 @@ status_t Processor::LDA(uchar_t opcode) {
 	//
 	case LDA_ZERO_PAGE:
 	{
-		printf("Instruction LDA_ZERO_PAGE not implemented\n");
-		ret = ERROR_UNKNOWN;
+                uchar_t instrAddr;
+		ret = mMemoryInterface->fetchBytesFromMemory(&instrAddr, mRegisters->programCounter + 1);
+		if (ret != OK) {
+			printf("Error reading memory\n");
+			return ret;
+		}
+
+		printf("Zero page address: 0x%x\n", instrAddr);
+
+		uchar_t instrData;
+                ret = mMemoryInterface->fetchBytesFromMemory(&instrData, instrAddr);
+
+                printf("Setting accumulator to: 0x%x\n", instrData);
+		mRegisters->accumulator = instrData;                
+
+		// Set status registers
+		if (mRegisters->accumulator == 0) {
+			printf("Zero result: Setting zero flag\n");
+			mRegisters->statusFlags.Z = 1;
+		}
+		else {
+			mRegisters->statusFlags.Z = 0;
+		}
+		if ((mRegisters->accumulator & 0x80) == 0x80) {
+			printf("Negative result: Setting negative flag\n");
+			mRegisters->statusFlags.N = 1;
+		}
+		else {
+			mRegisters->statusFlags.N = 0;
+		}
+
+		mRegisters->programCounter += 2;
+
+		mCycleCount += 2;
+		ret = OK;
 		break;
 	}
 
@@ -926,8 +970,44 @@ status_t Processor::LDA(uchar_t opcode) {
 	//
 	case LDA_INDIRECT_X:
 	{
-		printf("Instruction LDA_INDIRECT_X not implemented\n");
-		ret = ERROR_UNKNOWN;
+                uchar_t offset;
+		mMemoryInterface->fetchBytesFromMemory(&offset, mRegisters->programCounter + 1);
+
+                ushort_t pageOffset = offset + mRegisters->indexX;
+                printf("Offset is 0x%x\n", pageOffset);
+ 
+                std::vector<uchar_t> addr;
+		mMemoryInterface->fetchBytesFromMemory(&addr, 2, pageOffset);
+
+                ushort_t indirectAddr = (addr[0] << 8) | addr[1];
+
+                printf("Indirect Addr: 0x%x\n", indirectAddr);
+
+                uchar_t val;
+                mMemoryInterface->fetchBytesFromMemory(&val, indirectAddr);
+                printf("Setting accumulator to: 0x%x\n", val);
+		mRegisters->accumulator = val;
+
+		// Set status registers
+		if (mRegisters->accumulator == 0) {
+			printf("Zero result: Setting zero flag\n");
+			mRegisters->statusFlags.Z = 1;
+		}
+		else {
+			mRegisters->statusFlags.Z = 0;
+		}
+		if ((mRegisters->accumulator & 0x80) == 0x80) {
+			printf("Negative result: Setting negative flag\n");
+			mRegisters->statusFlags.N = 1;
+		}
+		else {
+			mRegisters->statusFlags.N = 0;
+		}
+
+		mRegisters->programCounter += 2;
+
+		mCycleCount += 6;
+		ret = OK;
 		break;
 	}
 
@@ -1013,8 +1093,27 @@ status_t Processor::STA(uchar_t opcode) {
 		//
 		case STA_ABSOLUTE:
 		{
-			printf("Instruction STA_ABSOLUTE not implemented\n");
-			ret = ERROR_UNKNOWN;
+                        std::vector<uchar_t> addr;
+			ret = mMemoryInterface->fetchBytesFromMemory(&addr, 2, mRegisters->programCounter + 1);
+			if (ret != OK) {
+				printf("Error reading memory\n");
+				return ret;
+			}
+
+                        ushort_t dataAddr = (addr[0] << 8) | addr[1];
+
+                        uchar_t accu = mRegisters->accumulator;
+                        printf("Storing: 0x%x in: 0x%x\n, ", accu, dataAddr);
+			ret = mMemoryInterface->writeBytesToMemory(accu, dataAddr);
+			if (ret != OK) {
+				printf("Error writing to memory\n");
+				return ret;
+			}
+
+			mRegisters->programCounter += 3;
+
+			mCycleCount += 3;
+			ret = OK;
 			break;
 		}
 
@@ -1037,11 +1136,32 @@ status_t Processor::STA(uchar_t opcode) {
 		//
 		case STA_INDIRECT_X:
 		{
-			printf("Instruction STA_INDIRECT_X not implemented\n");
-			ret = ERROR_UNKNOWN;
-			break;
-		}
+                	uchar_t offset;
+			mMemoryInterface->fetchBytesFromMemory(&offset, mRegisters->programCounter + 1);
 
+                	ushort_t pageOffset = offset + mRegisters->indexX;
+                	printf("Offset is 0x%x\n", pageOffset);
+ 
+                	std::vector<uchar_t> addr;
+			mMemoryInterface->fetchBytesFromMemory(&addr, 2, pageOffset);
+
+                	ushort_t indirectAddr = (addr[0] << 8) | addr[1];
+
+                	printf("Setting 0x%x to 0x%x\n", indirectAddr, mRegisters->accumulator);
+
+                	uchar_t accu = mRegisters->accumulator;
+			ret = mMemoryInterface->writeBytesToMemory(accu, indirectAddr);
+			if (ret != OK) {
+				printf("Error writing to memory\n");
+				return ret;
+			}
+
+			mRegisters->programCounter += 2;
+
+			mCycleCount += 6;
+			ret = OK;
+			break;
+                }
 		//
 		case STA_INDIRECT_Y:
 		{
@@ -1304,6 +1424,127 @@ status_t Processor::LSR(uchar_t opcode) {
 		default:
 		{
 			printf("No LSR implementation for opcode 0x%x\n", opcode);
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+
+/*
+ * Move each of the bits in either A or M one place to the left. 
+ * Bit 0 is filled with the current value of the carry flag whilst the old bit 1 becomes the new carry flag value.
+ *
+ * Processor Status after use:
+ *
+ * C 	Carry Flag       	Set to contents of old bit 7
+ * Z 	Zero Flag 	        Set if A = 0
+ * I 	Interrupt Disable 	Not affected
+ * D 	Decimal Mode Flag 	Not affected
+ * B 	Break Command    	Not affected
+ * V 	Overflow Flag   	Not affected
+ * N 	Negative Flag    	Set if bit 7 of the result is set
+ *
+ * Addressing Modes   |  Opcode |  Bytes |  Cycles
+ * Accumulator        |  0x2A   |  1     |  2
+ * Zero Page          |  0x26   |  2     |  5
+ * Zero Page,X        |  0x36   |  2     |  6
+ * Absolute           |  0x2E   |  3     |  6
+ * Absolute,X         |  0x3E   |  3     |  7
+ */
+status_t Processor::ROL(uchar_t opcode) {
+
+	status_t ret = ERROR_UNKNOWN;
+	switch (opcode) {
+
+		// Get accumulator and bit by bit AND it with next byte
+		case ROL_ACCUMULATOR:
+		{
+			uchar_t accu = mRegisters->accumulator;
+			uchar_t rotateOne = mRegisters->statusFlags.C;
+
+			if ((accu & 0x80) == 0x80) {
+				printf("Carry: Setting carry flag\n");
+				mRegisters->statusFlags.C = 1;
+			}
+			else {
+				mRegisters->statusFlags.C = 0;
+			}
+
+			// Shift right by one and ensure bit 7 is 0
+			uchar_t shift = accu << 1;
+
+			if (rotateOne) {
+				shift = shift | 0x01;
+			}
+			else {
+				shift = shift & 0xfe;
+			}
+
+			mRegisters->accumulator = shift;
+			printf("Setting accumulator to 0x%x\n", shift);
+
+			// Set status registers
+			if (mRegisters->accumulator == 0) {
+				printf("Zero result: Setting zero flag\n");
+				mRegisters->statusFlags.Z = 1;
+			}
+			else {
+				mRegisters->statusFlags.Z = 0;
+			}
+			if ((mRegisters->accumulator & 0x80) == 0x80) {
+				printf("Negative result: Setting negative flag\n");
+				mRegisters->statusFlags.N = 1;
+			}
+			else {
+				mRegisters->statusFlags.N = 0;
+			}
+
+			mRegisters->programCounter += 1;
+
+			mCycleCount += 2;
+			ret = OK;
+			break;
+		}
+
+
+		//
+		case ROL_ZERO_PAGE:
+		{
+			printf("Instruction ROL_ZERO_PAGE not implemented\n");
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+
+		//
+		case ROL_ZERO_PAGE_X:
+		{
+			printf("Instruction ROL_ZERO_PAGE_X not implemented\n");
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+
+		//
+		case ROL_ABSOLUTE:
+		{
+			printf("Instruction ROL_ABSOLUTE not implemented\n");
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+
+		//
+		case ROL_ABSOLUTE_X:
+		{
+			printf("Instruction ROL_ABSOLUTE_X not implemented\n");
+			ret = ERROR_UNKNOWN;
+			break;
+		}
+
+		default:
+		{
+			printf("No ROL implementation for opcode 0x%x\n", opcode);
 			ret = ERROR_UNKNOWN;
 			break;
 		}
@@ -1659,8 +1900,44 @@ status_t Processor::ORA(uchar_t opcode) {
 		//
 		case ORA_INDIRECT_X:
 		{
-			printf("Instruction ORA_INDIRECT_X not implemented\n");
-			ret = ERROR_UNKNOWN;
+                 uchar_t offset;
+		mMemoryInterface->fetchBytesFromMemory(&offset, mRegisters->programCounter + 1);
+
+                ushort_t pageOffset = offset + mRegisters->indexX;
+                printf("Offset is 0x%x\n", pageOffset);
+ 
+                std::vector<uchar_t> addr;
+		mMemoryInterface->fetchBytesFromMemory(&addr, 2, pageOffset);
+
+                ushort_t indirectAddr = (addr[0] << 8) | addr[1];
+
+                printf("Indirect Addr: 0x%x\n", indirectAddr);
+
+                uchar_t val;
+                mMemoryInterface->fetchBytesFromMemory(&val, indirectAddr);
+                printf("Setting accumulator to: 0x%x\n", val);
+		mRegisters->accumulator = val;
+
+			// Set status registers
+			if (mRegisters->accumulator == 0) {
+				printf("Zero result: Setting zero flag\n");
+				mRegisters->statusFlags.Z = 1;
+			}
+			else {
+				mRegisters->statusFlags.Z = 0;
+			}
+			if ((mRegisters->accumulator & 0x80) == 0x80) {
+				printf("Negative result: Setting negative flag\n");
+				mRegisters->statusFlags.N = 1;
+			}
+			else {
+				mRegisters->statusFlags.N = 0;
+			}
+
+			mRegisters->programCounter += 2;
+
+			mCycleCount += 6;
+			ret = OK;
 			break;
 		}
 
